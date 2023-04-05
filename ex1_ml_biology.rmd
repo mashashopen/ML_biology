@@ -1,0 +1,344 @@
+---
+title: "Tirgul 2 - EDA"
+author: "Romi Goldner Kabeli"
+date: "3/21/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+We'll perform Exploratory Data Analysis ("EDA") on the Chocolates dataset.
+
+First, load the libraries
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggrepel)
+library(cowplot)
+library(GGally)
+library(ggplot2)
+library(ggrepel)
+library(cowplot)
+```
+
+then we load the data
+
+```{r}
+
+flavors <- read.csv("/Users/mashashopen/Downloads/flavors_of_cacao.csv", header = TRUE)
+
+```
+
+
+
+```{r}
+# get dimensions, number of rows and columns
+dim(flavors)
+nrow(flavors) 
+ncol(flavors)
+```
+
+
+JUST TO GET AN IDEA OF THE DATA. FOR EXAMPLE, THERE ARE ROWS WITHOUT "BEAN.TYPE" VALUE ETC
+
+```{r}
+# show first and last 6 (default) rows
+head(flavors)
+tail(flavors)
+
+```
+FULL LIST OF THE COLUMNS NAMES
+
+
+```{r}
+# column names
+names(flavors)
+```
+
+STR - SHOWS US THE DATA AND THE TYPE OF EACH COLUMN
+SUMMERY - USEFUL DATA ABOUT THE DATA VALUES IN EACH COLUMN
+
+```{r}
+# structure and summary of the data
+str(flavors)
+summary(flavors)
+```
+
+
+```{r}
+# Convert Cocoa.Percent column to numeric type
+flavors$Cocoa.Percent <- as.numeric(gsub("%","", flavors$Cocoa.Percent))
+```
+
+
+
+
+We can access specific values of a dataset using these commands:
+
+```{r}
+
+#names(flavors) <- make.names(names(flavors), unique = TRUE)
+
+
+
+```
+
+
+```{r}
+
+# Distribution of Cocoa Percentages
+ggplot(flavors, aes(x = Cocoa.Percent)) +
+  geom_histogram(binwidth = 0.02, color = "black", fill = "blue") +
+  labs(x = "Cocoa Percentage", y = "Count") +
+  ggtitle("Distribution of Cocoa Percentages")
+
+# Distribution of Ratings
+ggplot(flavors, aes(x = Rating)) +
+  geom_histogram(binwidth = 0.25, color = "black", fill = "orange") +
+  labs(x = "Rating", y = "Count") +
+  ggtitle("Distribution of Ratings")
+
+# Top Chocolate Brands by Count
+top_brands <- flavors %>% 
+  count(Company...Maker.if.known.) %>% 
+  top_n(10)
+
+ggplot(top_brands, aes(x = reorder(Company...Maker.if.known., -n), y = n)) +
+  geom_bar(stat = "identity", color = "black", fill = "green") +
+  coord_flip() +
+  labs(x = "Brand", y = "Count") +
+  ggtitle("Top Chocolate Brands by Count")
+
+# Top Chocolate Companies by Count
+top_companies <- flavors %>% 
+  count(Broad.Bean.Origin) %>% 
+  top_n(10)
+
+ggplot(top_companies, aes(x = reorder(Broad.Bean.Origin, -n), y = n)) +
+  geom_bar(stat = "identity", color = "black", fill = "red") +
+  coord_flip() +
+  labs(x = "Bean Origin", y = "Count") +
+  ggtitle("Top Beans' Origin by Count")
+
+# Relationship between Cocoa Percentage and Rating
+ggplot(flavors, aes(x = Cocoa.Percent, y = Rating)) +
+  geom_point(color = "purple", alpha = 0.5) +
+  labs(x = "Cocoa Percentage", y = "Rating") +
+  ggtitle("Relationship between Cocoa Percentage and Rating") +
+  geom_smooth(method = 'lm', se = FALSE, col = 'red')
+
+
+# Top Chocolate Companies by Mean Rating
+top_mean_ratings <- flavors %>% 
+  group_by(Company...Maker.if.known.) %>% 
+  summarize(mean_rating = mean(Rating)) %>% 
+  top_n(10)
+
+ggplot(top_mean_ratings, aes(x = reorder(Company...Maker.if.known., -mean_rating), y = mean_rating)) +
+  geom_bar(stat = "identity", color = "black", fill = "brown") +
+  coord_flip() +
+  labs(x = "Company", y = "Mean Rating") +
+  ggtitle("Top Chocolate Companies by Mean Rating")
+
+
+```
+
+
+## Data Variation
+
+One important fact to know about our data is its variation, can you think of reasons why? 
+
+
+
+
+```{r}
+# creating boxplot
+ggplot(data = flavors, mapping = aes(x = Rating, y = Cocoa.Percent)) + 
+  geom_boxplot(mapping = aes(group = cut_width(Rating, 0.1)))
+
+# Variance between two categorical variables
+ggplot(data = flavors) +
+  geom_count(mapping = aes(x = Company.Location, y = Bean.Type)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+Which plot is better? What do we know about these two variables in regard to their variation?
+
+## Data Visualisation
+
+```{r}
+avg_ratings <- flavors %>% 
+  group_by(Review.Date) %>% # Group by new date column
+  summarise(avg_rating = mean(Rating), count_ratings = n()) # Summary stats
+
+ggplot(avg_ratings, aes(x = Review.Date, y = avg_rating)) +
+  geom_line() +
+  labs(x = "Review Date", y = "Average Rating")
+
+```
+
+
+
+
+Now we can try to take a closer look at these values:
+
+```{r}
+unusual_values <- flavors %>% 
+  filter(Rating < 2.75 | Rating > 4) %>% 
+  select(Rating, Cocoa.Percent, Company.Location, Company...Maker.if.known., Bean.Type) %>%
+  arrange(Cocoa.Percent)
+unusual_values
+```
+
+
+
+## finding duplicated rows
+
+```{r}
+
+numeric_vars <- c(
+  "Rating", "Review.Date", "Cocoa.Percent", "REF"
+)
+flavors_num <- flavors[, numeric_vars]
+
+# Handle missing data
+flavors_num[is.na(flavors_num)] <- 0
+
+
+# Identify missing values
+missing_values <- apply(flavors_num, 2, function(x) sum(is.na(x)))
+flavors_num <- flavors_num[complete.cases(flavors_num), ]
+
+# Remove duplicates
+flavors_num <- unique(flavors_num)
+
+# Check for outliers
+boxplot(flavors_num)
+flavors_num <- flavors_num[apply(flavors_num, 1, function(x) all(abs(scale(x)) < 3)), ]
+
+```
+CLASSIFICATION TO GOOD AND BAD CHOCLATES, BY RATING
+
+```{r}
+
+bad <- c(335, 439, 467, 556) # below 2
+good <- c(88,80, 1292, 58) # above 4
+
+flavors_num$classification <- "normal"
+flavors_num$classification[match(good, rownames(flavors_num))] <- "good"
+flavors_num$classification[match(bad, rownames(flavors_num))] <- "bad"
+
+```
+
+
+PCA
+
+```{r}
+
+# Perform PCA
+pca_results <- prcomp(flavors_num[, -c(5)], center = TRUE, scale. = TRUE)
+
+# Extract principal components
+pc_data <- data.frame(
+  PC1 = pca_results$x[, 1],
+  PC2 = pca_results$x[, 2],
+  classification = as.factor(flavors_num$classification)
+)
+
+
+# Visualize results
+
+ggplot(pc_data, aes(x = PC1, y = PC2, col = classification, size = ifelse(classification == "normal", 1, 2))) +
+geom_point() 
+```
+
+
+
+Using the PCA, we can now find chocolates that are similar to the good chocolates (based on rating).
+In order to do that, we will look for the chocolates with similar values of the principal components as the good chocolates.
+
+we can see the chocolates from Canada and Italy are approximately close to the good chocolates, and it may indicate that chocolate coming from these countries is good.
+
+
+
+##################### IM NOT SURE WHERE ARE THE LABLES COMING FROM!!!!!!!#############################
+
+```{r}
+flavors_num_int <- which(pc_data$PC1 < 3 &
+  pc_data$PC1 > 1.5 &
+  pc_data$PC2 < 1 &
+  pc_data$PC2 > -3)
+
+pc_data$label2 <- ""
+pc_data$label2[flavors_num_int] <- label[flavors_num_int]
+
+ggplot(pc_data, aes(x = PC1, y = PC2, label = label2, col = classification, size = ifelse(classification == "normal", 1, 2))) +
+  geom_point() +
+  ggrepel::geom_text_repel(cex = 2.5, 
+                           box.padding = 0.5, 
+                           point.padding = 0.5, 
+                           min.segment.length = 0.1,
+                           force = 10,
+                           max.iter = 1000)
+```
+
+
+```{r}
+  library(Rtsne)
+
+
+tsne_flavors_num <- Rtsne(flavors_num[,1:5],
+  pca = FALSE, perplexity = 10,
+  theta = 0.0
+)
+
+tsne_flavors_num <- data.frame(
+   TSNE1 = tsne_flavors_num$Y[, 1],
+   TSNE2 = tsne_flavors_num$Y[, 2],
+   classification = flavors_num$classification
+ )
+
+```
+
+
+```{r}
+ggplot(tsne_flavors_num, aes(
+ x = TSNE1, y = TSNE2,
+ col = classification, size = ifelse(classification == "normal", 1, 2))) +
+ geom_point()
+```
+
+
+
+
+```{r}
+library(mlbench) 
+library(caret)
+library(randomForest)
+library(ggcorrplot)
+```
+
+
+STRONG CORRELATION BETWEEN REF AND REVIEW.DATE (obvious...)
+SOME CORRELATION BETWEEN RATING AND REF
+
+```{r}
+
+# calculate correlation matrix
+correlationMatrix <- cor(flavors_num[-5])
+# display the correlation matrix
+ggcorrplot(correlationMatrix)
+```
+
+
+
+
+
+
+
+
+
