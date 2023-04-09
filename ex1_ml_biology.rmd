@@ -1,7 +1,7 @@
 ---
-title: "Tirgul 2 - EDA"
-author: "Romi Goldner Kabeli"
-date: "3/21/2023"
+title: "Exercise 1 - EDA on the Chocolates dataset"
+author: "Michal, Liel and Maria Shopen"
+date: ""
 output:
   pdf_document: default
   html_document: default
@@ -88,23 +88,31 @@ We can access specific values of a dataset using these commands:
 
 
 ```{r}
-
 # Distribution of Cocoa Percentages
 ggplot(flavors, aes(x = Cocoa.Percent)) +
   geom_histogram(binwidth = 0.02, color = "black", fill = "blue") +
   labs(x = "Cocoa Percentage", y = "Count") +
   ggtitle("Distribution of Cocoa Percentages")
 
+```
+
+```{r}
 # Distribution of Ratings
 ggplot(flavors, aes(x = Rating)) +
   geom_histogram(binwidth = 0.25, color = "black", fill = "orange") +
   labs(x = "Rating", y = "Count") +
   ggtitle("Distribution of Ratings")
+```
 
+```{r}
 # Top Chocolate Brands by Count
 top_brands <- flavors %>% 
   count(Company...Maker.if.known.) %>% 
   top_n(10)
+```
+
+
+```{r}
 
 ggplot(top_brands, aes(x = reorder(Company...Maker.if.known., -n), y = n)) +
   geom_bar(stat = "identity", color = "black", fill = "green") +
@@ -116,7 +124,10 @@ ggplot(top_brands, aes(x = reorder(Company...Maker.if.known., -n), y = n)) +
 top_companies <- flavors %>% 
   count(Broad.Bean.Origin) %>% 
   top_n(10)
+```
 
+
+```{r}
 ggplot(top_companies, aes(x = reorder(Broad.Bean.Origin, -n), y = n)) +
   geom_bar(stat = "identity", color = "black", fill = "red") +
   coord_flip() +
@@ -129,7 +140,11 @@ ggplot(flavors, aes(x = Cocoa.Percent, y = Rating)) +
   labs(x = "Cocoa Percentage", y = "Rating") +
   ggtitle("Relationship between Cocoa Percentage and Rating") +
   geom_smooth(method = 'lm', se = FALSE, col = 'red')
+```
 
+
+
+```{r}
 
 # Top Chocolate Companies by Mean Rating
 top_mean_ratings <- flavors %>% 
@@ -166,9 +181,7 @@ ggplot(data = flavors) +
 
 ```
 
-Which plot is better? What do we know about these two variables in regard to their variation?
 
-## Data Visualisation
 
 ```{r}
 avg_ratings <- flavors %>% 
@@ -184,8 +197,6 @@ ggplot(avg_ratings, aes(x = Review.Date, y = avg_rating)) +
 
 
 
-Now we can try to take a closer look at these values:
-
 ```{r}
 unusual_values <- flavors %>% 
   filter(Rating < 2.75 | Rating > 4) %>% 
@@ -196,7 +207,6 @@ unusual_values
 
 
 
-## finding duplicated rows
 
 ```{r}
 
